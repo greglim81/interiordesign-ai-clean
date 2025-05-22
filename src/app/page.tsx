@@ -90,14 +90,23 @@ export default function Home() {
           date: Date.now(),
         });
       }
-    } catch (err: any) {
-      console.error('Transform error:', err);
-      setError(err.message);
-      setProgress({
-        status: 'failed',
-        progress: 0,
-        message: err.message
-      });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error('Transform error:', err);
+        setError(err.message);
+        setProgress({
+          status: 'failed',
+          progress: 0,
+          message: err.message
+        });
+      } else {
+        setError('Failed to transform image');
+        setProgress({
+          status: 'failed',
+          progress: 0,
+          message: 'Failed to transform image'
+        });
+      }
     } finally {
       setIsProcessing(false);
     }
