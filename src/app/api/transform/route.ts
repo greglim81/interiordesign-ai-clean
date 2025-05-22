@@ -181,7 +181,11 @@ async function pollForResult(predictionId: string): Promise<ReplicatePrediction>
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(getErrorMessage(error.detail || 'Failed to get prediction status'));
+      // Type guard for error.detail
+      const detail = typeof error === 'object' && error !== null && 'detail' in error
+        ? (error as { detail?: string }).detail
+        : undefined;
+      throw new Error(getErrorMessage(detail || 'Failed to get prediction status'));
     }
 
     const prediction = await response.json() as ReplicatePrediction;
