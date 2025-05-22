@@ -1,24 +1,62 @@
 import { NextResponse } from 'next/server';
 import { STYLE_PRESETS, TransformOptions, TransformProgress } from '@/types/transform';
+import { adminStorage } from '@/lib/firebaseAdmin';
+import fetch from 'node-fetch';
+import { v4 as uuidv4 } from 'uuid';
 
 export const dynamic = 'force-dynamic';
 
 interface ReplicatePrediction {
   id: string;
   status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
-  output: string[];
+  output: string[] | string;
   error?: string;
   logs?: string;
 }
 
+async function uploadImageToFirebaseStorage(imageUrl: string): Promise<string> {
+  try {
+    console.log('Downloading image from Replicate:', imageUrl);
+    // Download the image from Replicate
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      console.error('Failed to download image:', response.status, response.statusText);
+      throw new Error('Failed to download transformed image');
+    }
+    const buffer = await response.buffer();
+    console.log('Image downloaded successfully');
+
+    // Generate a unique filename
+    const filename = `transformed/${uuidv4()}.png`;
+    console.log('Uploading to Firebase Storage:', filename);
+    
+    // Upload to Firebase Storage
+    const bucket = adminStorage.bucket();
+    const file = bucket.file(filename);
+    await file.save(buffer, {
+      contentType: 'image/png',
+      public: true,
+      metadata: { cacheControl: 'public,max-age=31536000' },
+    });
+    console.log('Image uploaded to Firebase Storage successfully');
+
+    // Get the public URL
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+    console.log('Public URL:', publicUrl);
+    return publicUrl;
+  } catch (error: any) {
+    console.error('Error in uploadImageToFirebaseStorage:', error);
+    throw error;
+  }
+}
+
 export async function POST(request: Request) {
   try {
-    console.log('Transform API called');
+    console.log('Received transform request');
     const { imageUrl, options } = await request.json() as { imageUrl: string; options: TransformOptions };
     console.log('Request data:', { imageUrl, options });
 
     if (!imageUrl) {
-      console.log('No image URL provided');
       return NextResponse.json(
         { error: 'Image URL is required' },
         { status: 400 }
@@ -26,7 +64,7 @@ export async function POST(request: Request) {
     }
 
     if (!process.env.REPLICATE_API_TOKEN) {
-      console.log('No Replicate API token configured');
+      console.error('Replicate API token is not configured');
       return NextResponse.json(
         { error: 'Replicate API token is not configured' },
         { status: 500 }
@@ -35,14 +73,13 @@ export async function POST(request: Request) {
 
     const styleConfig = STYLE_PRESETS[options.style];
     if (!styleConfig) {
-      console.log('Invalid style preset:', options.style);
       return NextResponse.json(
         { error: 'Invalid style preset' },
         { status: 400 }
       );
     }
 
-    console.log('Creating prediction with Replicate...');
+    console.log('Creating Replicate prediction...');
     // Create prediction
     const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
@@ -66,20 +103,23 @@ export async function POST(request: Request) {
 
     if (!createResponse.ok) {
       const error = await createResponse.json();
+      console.error('Replicate API error:', error);
       throw new Error(getErrorMessage(error.detail || 'Failed to create prediction'));
     }
 
     const prediction = await createResponse.json() as ReplicatePrediction;
-    console.log('Replicate prediction response:', prediction);
-    
-    // Support both string and array output
+    console.log('Prediction created:', prediction);
+
     let outputUrl = Array.isArray(prediction.output)
       ? prediction.output[0]
       : prediction.output;
 
     if (prediction.status === 'succeeded' && outputUrl) {
+      console.log('Prediction succeeded immediately, uploading to Firebase Storage...');
+      // Upload to Firebase Storage
+      const firebaseUrl = await uploadImageToFirebaseStorage(outputUrl);
       return NextResponse.json({ 
-        transformedImageUrl: outputUrl,
+        transformedImageUrl: firebaseUrl,
         progress: {
           status: 'succeeded',
           progress: 100,
@@ -88,19 +128,20 @@ export async function POST(request: Request) {
       });
     }
     
+    console.log('Polling for prediction result...');
     // If not, poll for the result
     const result = await pollForResult(prediction.id);
-    console.log('Replicate poll result:', result);
     let resultOutputUrl = Array.isArray(result.output)
       ? result.output[0]
       : result.output;
-    
     if (!resultOutputUrl) {
       throw new Error('No output image generated');
     }
-
+    console.log('Prediction completed, uploading to Firebase Storage...');
+    // Upload to Firebase Storage
+    const firebaseUrl = await uploadImageToFirebaseStorage(resultOutputUrl);
     return NextResponse.json({ 
-      transformedImageUrl: resultOutputUrl,
+      transformedImageUrl: firebaseUrl,
       progress: {
         status: 'succeeded',
         progress: 100,

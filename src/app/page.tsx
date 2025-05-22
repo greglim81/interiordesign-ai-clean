@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import PhotoUpload from '@/components/PhotoUpload';
 import StyleSelector from '@/components/StyleSelector';
 import { TransformOptions, TransformProgress } from '@/types/transform';
+import { saveTransformationHistory } from '@/lib/firestore';
 
 export default function Home() {
   const router = useRouter();
@@ -78,6 +79,16 @@ export default function Home() {
 
       setTransformedImage(data.transformedImageUrl);
       setProgress(data.progress);
+
+      // Save to Firestore
+      if (user) {
+        await saveTransformationHistory(user.uid, {
+          originalImage,
+          transformedImage: data.transformedImageUrl,
+          style: transformOptions.style,
+          date: Date.now(),
+        });
+      }
     } catch (err: any) {
       console.error('Transform error:', err);
       setError(err.message);

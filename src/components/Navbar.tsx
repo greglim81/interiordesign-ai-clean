@@ -27,6 +27,13 @@ export default function Navbar() {
                 Interior AI
               </Link>
             </div>
+            {user && (
+              <div className="flex items-center ml-6 space-x-4">
+                <Link href="/history" className="text-blue-600 hover:underline font-medium">
+                  History
+                </Link>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center">

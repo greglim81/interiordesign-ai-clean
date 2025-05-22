@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StylePreset, STYLE_PRESETS, TransformOptions } from '@/types/transform';
+import Image from 'next/image';
 
 interface StyleSelectorProps {
   onOptionsChange: (options: TransformOptions) => void;
