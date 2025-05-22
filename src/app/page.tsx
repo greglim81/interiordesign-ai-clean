@@ -7,6 +7,7 @@ import PhotoUpload from '@/components/PhotoUpload';
 import StyleSelector from '@/components/StyleSelector';
 import { TransformOptions, TransformProgress } from '@/types/transform';
 import { saveTransformationHistory } from '@/lib/firestore';
+import Image from 'next/image';
 
 export default function Home() {
   const router = useRouter();
@@ -180,10 +181,12 @@ export default function Home() {
               <div>
                 <h2 className="text-lg font-medium text-gray-900 mb-2">Original Room</h2>
                 <div className="relative aspect-video rounded-lg overflow-hidden">
-                  <img
+                  <Image
                     src={originalImage}
                     alt="Original room"
                     className="object-cover w-full h-full"
+                    width={400}
+                    height={225}
                   />
                 </div>
               </div>
@@ -193,10 +196,12 @@ export default function Home() {
               <div>
                 <h2 className="text-lg font-medium text-gray-900 mb-2">Transformed Room</h2>
                 <div className="relative aspect-video rounded-lg overflow-hidden">
-                  <img
+                  <Image
                     src={transformedImage}
                     alt="Transformed room"
                     className="object-cover w-full h-full"
+                    width={400}
+                    height={225}
                   />
                 </div>
               </div>

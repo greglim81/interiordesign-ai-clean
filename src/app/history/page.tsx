@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { fetchTransformationHistory, TransformationHistoryItem } from "@/lib/firestore";
+import Image from 'next/image';
 
 export default function HistoryPage() {
   const { user, loading } = useAuth();
@@ -50,10 +51,12 @@ export default function HistoryPage() {
                 className="group bg-white rounded-lg shadow hover:shadow-lg transition overflow-hidden border border-gray-100"
               >
                 <div className="aspect-video bg-gray-100 overflow-hidden">
-                  <img
+                  <Image
                     src={item.transformedImage}
                     alt="Transformed room"
                     className="object-cover w-full h-full group-hover:scale-105 transition-transform"
+                    width={400}
+                    height={225}
                   />
                 </div>
                 <div className="p-3 text-left">
@@ -79,11 +82,23 @@ export default function HistoryPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <div className="text-xs text-gray-500 mb-1">Original</div>
-                  <img src={selected.originalImage} alt="Original room" className="rounded w-full object-cover" />
+                  <Image
+                    src={selected.originalImage}
+                    alt="Original room"
+                    className="rounded w-full object-cover"
+                    width={400}
+                    height={225}
+                  />
                 </div>
                 <div>
                   <div className="text-xs text-gray-500 mb-1">Transformed</div>
-                  <img src={selected.transformedImage} alt="Transformed room" className="rounded w-full object-cover" />
+                  <Image
+                    src={selected.transformedImage}
+                    alt="Transformed room"
+                    className="rounded w-full object-cover"
+                    width={400}
+                    height={225}
+                  />
                 </div>
               </div>
               <div className="mt-4 text-sm">

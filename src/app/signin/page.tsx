@@ -21,8 +21,8 @@ export default function SignIn() {
     try {
       await signIn(email, password);
       router.push('/');
-    } catch (error: any) {
-      setError(error.message || 'Failed to sign in');
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Failed to sign in');
     } finally {
       setLoading(false);
     }

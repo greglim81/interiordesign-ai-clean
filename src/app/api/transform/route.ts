@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { STYLE_PRESETS, TransformOptions, TransformProgress } from '@/types/transform';
+import { STYLE_PRESETS, TransformOptions } from '@/types/transform';
 import { adminStorage } from '@/lib/firebaseAdmin';
 import fetch from 'node-fetch';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,7 +17,6 @@ interface ReplicatePrediction {
 async function uploadImageToFirebaseStorage(imageUrl: string): Promise<string> {
   try {
     console.log('Downloading image from Replicate:', imageUrl);
-    // Download the image from Replicate
     const response = await fetch(imageUrl);
     if (!response.ok) {
       console.error('Failed to download image:', response.status, response.statusText);
@@ -25,12 +24,8 @@ async function uploadImageToFirebaseStorage(imageUrl: string): Promise<string> {
     }
     const buffer = await response.buffer();
     console.log('Image downloaded successfully');
-
-    // Generate a unique filename
     const filename = `transformed/${uuidv4()}.png`;
     console.log('Uploading to Firebase Storage:', filename);
-    
-    // Upload to Firebase Storage
     const bucket = adminStorage.bucket();
     const file = bucket.file(filename);
     await file.save(buffer, {
@@ -39,14 +34,17 @@ async function uploadImageToFirebaseStorage(imageUrl: string): Promise<string> {
       metadata: { cacheControl: 'public,max-age=31536000' },
     });
     console.log('Image uploaded to Firebase Storage successfully');
-
-    // Get the public URL
     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
     console.log('Public URL:', publicUrl);
     return publicUrl;
-  } catch (error: any) {
-    console.error('Error in uploadImageToFirebaseStorage:', error);
-    throw error;
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error in uploadImageToFirebaseStorage:', error.message);
+      throw error;
+    } else {
+      console.error('Unknown error in uploadImageToFirebaseStorage');
+      throw new Error('Unknown error in uploadImageToFirebaseStorage');
+    }
   }
 }
 
@@ -55,14 +53,12 @@ export async function POST(request: Request) {
     console.log('Received transform request');
     const { imageUrl, options } = await request.json() as { imageUrl: string; options: TransformOptions };
     console.log('Request data:', { imageUrl, options });
-
     if (!imageUrl) {
       return NextResponse.json(
         { error: 'Image URL is required' },
         { status: 400 }
       );
     }
-
     if (!process.env.REPLICATE_API_TOKEN) {
       console.error('Replicate API token is not configured');
       return NextResponse.json(
@@ -70,7 +66,6 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
-
     const styleConfig = STYLE_PRESETS[options.style];
     if (!styleConfig) {
       return NextResponse.json(
@@ -78,9 +73,7 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-
     console.log('Creating Replicate prediction...');
-    // Create prediction
     const createResponse = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
@@ -100,23 +93,18 @@ export async function POST(request: Request) {
         },
       }),
     });
-
     if (!createResponse.ok) {
       const error = await createResponse.json();
       console.error('Replicate API error:', error);
-      throw new Error(getErrorMessage(error.detail || 'Failed to create prediction'));
+      throw new Error(getErrorMessage((error as { detail?: string }).detail || 'Failed to create prediction'));
     }
-
     const prediction = await createResponse.json() as ReplicatePrediction;
     console.log('Prediction created:', prediction);
-
-    let outputUrl = Array.isArray(prediction.output)
+    const outputUrl = Array.isArray(prediction.output)
       ? prediction.output[0]
       : prediction.output;
-
     if (prediction.status === 'succeeded' && outputUrl) {
       console.log('Prediction succeeded immediately, uploading to Firebase Storage...');
-      // Upload to Firebase Storage
       const firebaseUrl = await uploadImageToFirebaseStorage(outputUrl);
       return NextResponse.json({ 
         transformedImageUrl: firebaseUrl,
@@ -127,18 +115,15 @@ export async function POST(request: Request) {
         }
       });
     }
-    
     console.log('Polling for prediction result...');
-    // If not, poll for the result
     const result = await pollForResult(prediction.id);
-    let resultOutputUrl = Array.isArray(result.output)
+    const resultOutputUrl = Array.isArray(result.output)
       ? result.output[0]
       : result.output;
     if (!resultOutputUrl) {
       throw new Error('No output image generated');
     }
     console.log('Prediction completed, uploading to Firebase Storage...');
-    // Upload to Firebase Storage
     const firebaseUrl = await uploadImageToFirebaseStorage(resultOutputUrl);
     return NextResponse.json({ 
       transformedImageUrl: firebaseUrl,
@@ -148,19 +133,34 @@ export async function POST(request: Request) {
         message: 'Transformation completed successfully'
       }
     });
-  } catch (error: any) {
-    console.error('Error in transform API:', error);
-    return NextResponse.json(
-      { 
-        error: error.message || 'Failed to transform image',
-        progress: {
-          status: 'failed',
-          progress: 0,
-          message: error.message || 'Failed to transform image'
-        }
-      },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error in transform API:', error.message);
+      return NextResponse.json(
+        { 
+          error: error.message || 'Failed to transform image',
+          progress: {
+            status: 'failed',
+            progress: 0,
+            message: error.message || 'Failed to transform image'
+          }
+        },
+        { status: 500 }
+      );
+    } else {
+      console.error('Unknown error in transform API');
+      return NextResponse.json(
+        { 
+          error: 'Unknown error in transform API',
+          progress: {
+            status: 'failed',
+            progress: 0,
+            message: 'Unknown error in transform API'
+          }
+        },
+        { status: 500 }
+      );
+    }
   }
 }
 
