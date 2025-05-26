@@ -37,9 +37,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      console.log("User after signup:", userCredential.user);
+      console.log("auth.currentUser at signup:", auth.currentUser);
       // Initialize trial period for new user
       await initializeUserSubscription(userCredential.user.uid);
     } catch (error) {
+      console.error("Signup error:", error);
       throw error;
     }
   };
