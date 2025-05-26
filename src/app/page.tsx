@@ -8,6 +8,7 @@ import StyleSelector from '@/components/StyleSelector';
 import { TransformOptions, TransformProgress } from '@/types/transform';
 import { saveTransformationHistory } from '@/lib/firestore';
 import Image from 'next/image';
+import SubscriptionStatus from '@/components/SubscriptionStatus';
 
 export default function Home() {
   const router = useRouter();
@@ -131,6 +132,8 @@ export default function Home() {
             Upload a photo of your room and transform it with AI
           </p>
         </div>
+
+        <SubscriptionStatus />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-6">

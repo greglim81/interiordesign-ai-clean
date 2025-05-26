@@ -9,6 +9,7 @@ import {
   onAuthStateChanged
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
+import { initializeUserSubscription } from '@/lib/subscription';
 
 interface AuthContextType {
   user: User | null;
@@ -35,7 +36,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      // Initialize trial period for new user
+      await initializeUserSubscription(userCredential.user.uid);
     } catch (error) {
       throw error;
     }
