@@ -13,7 +13,7 @@ export interface SubscriptionData {
 
 export async function initializeUserSubscription(userId: string) {
   try {
-    console.log("Initializing subscription for userId:", userId);
+    console.log("[SUBSCRIPTION] Initializing subscription for userId:", userId);
     const trialEndsAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days from now
     await setDoc(doc(db, 'subscriptions', userId), {
       isSubscribed: false,
@@ -21,8 +21,9 @@ export async function initializeUserSubscription(userId: string) {
       stripeCustomerId: null,
       subscriptionId: null,
     });
+    console.log("[SUBSCRIPTION] Subscription document created for userId:", userId);
   } catch (error) {
-    console.error("Error in initializeUserSubscription:", error);
+    console.error("[SUBSCRIPTION ERROR]", error);
     throw error;
   }
 }

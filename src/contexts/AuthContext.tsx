@@ -36,13 +36,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string) => {
     try {
+      console.log("[SIGNUP] Attempting signup for email:", email);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log("User after signup:", userCredential.user);
-      console.log("auth.currentUser at signup:", auth.currentUser);
+      console.log("[SIGNUP] User after signup:", userCredential.user);
+      console.log("[SIGNUP] auth.currentUser at signup:", auth.currentUser);
       // Initialize trial period for new user
       await initializeUserSubscription(userCredential.user.uid);
+      console.log("[SIGNUP] initializeUserSubscription called for UID:", userCredential.user.uid);
     } catch (error) {
-      console.error("Signup error:", error);
+      console.error("[SIGNUP ERROR]", error);
       throw error;
     }
   };
