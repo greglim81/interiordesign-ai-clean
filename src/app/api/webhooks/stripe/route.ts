@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { updateSubscriptionStatus } from '@/lib/subscription';
+import { updateSubscriptionStatusAdmin } from '@/lib/subscriptionAdmin';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-04-30.basil',
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
         const subscriptionId = session.subscription as string;
 
         if (userId && customerId && subscriptionId) {
-          await updateSubscriptionStatus(userId, customerId, subscriptionId);
+          await updateSubscriptionStatusAdmin(userId, customerId, subscriptionId);
         }
         break;
       }
