@@ -32,7 +32,6 @@ export async function POST(request: Request) {
         break;
       }
       case 'customer.subscription.deleted': {
-        const subscription = event.data.object as Stripe.Subscription;
         // Handle subscription cancellation
         // You might want to update the user's subscription status in your database
         break;

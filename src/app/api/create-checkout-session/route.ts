@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { getUserSubscription } from '@/lib/subscription';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-04-30.basil',
@@ -24,8 +23,6 @@ export async function POST(request: Request) {
       );
     }
     
-    // Get user's subscription data
-    const subscription = await getUserSubscription(userId);
     
     // Create a checkout session
     const session = await stripe.checkout.sessions.create({
